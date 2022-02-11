@@ -1,0 +1,45 @@
+# __author__ = "Charlie Pauvert"
+# __copyright__ = "Copyright 2022, Charlie Pauvert"
+# __license__ = "MIT"
+
+import pandas as pd
+
+samples = pd.read_table("config/samples.tsv").set_index("sample", drop=False)
+
+
+def get_fastqs(wildcards):
+    return samples.loc[wildcards.strain, ["fq1", "fq2"]]
+
+
+rule all:
+    input:
+        expand("results/{strain}.fasta", strain=samples.index),
+
+
+rule cutadapt:
+    input:
+        get_fastqs,
+    output:
+        fastq1="trimmed/{strain}.1.fastq",
+        fastq2="trimmed/{strain}.2.fastq",
+        qc="trimmed/{strain}.qc.txt",
+    params:
+        # https://cutadapt.readthedocs.io/en/stable/guide.html#adapter-types
+        adapters="-a AGAGCACACGTCTGAACTCCAGTCAC -g AGATCGGAAGAGCACACGT -A AGAGCACACGTCTGAACTCCAGTCAC -G AGATCGGAAGAGCACACGT",
+        # https://cutadapt.readthedocs.io/en/stable/guide.html#
+        extra="--minimum-length 1 -q 20",
+    log:
+        "logs/cutadapt/{strain}.log",
+    threads: 4  # set desired number of threads here
+    wrapper:
+        "v1.1.0/bio/cutadapt/pe"
+
+
+rule merge:
+    input:
+        fastq1="trimmed/{strain}.1.fastq",
+        fastq2="trimmed/{strain}.2.fastq",
+    output:
+        "results/{strain}.fasta",
+    shell:
+        "cat {input.fastq1} {input.fastq2} > {output}"
