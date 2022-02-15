@@ -34,7 +34,7 @@ rule cutadapt:
     wrapper:
         "v1.1.0/bio/cutadapt/pe"
 
-rule convert_fastq:
+rule unique_sequences:
     input:
         "trimmed/{strain}.{orientation}.fastq",
     output:
@@ -42,7 +42,7 @@ rule convert_fastq:
     conda:
         "envs/vsearch.yaml"
     shell:
-        "vsearch --fastq_convert {input} --fasta_out {output}"
+        "vsearch --fastx_uniques {input} --fastaout {output} --fasta_width 0 --threads {threads}"
 
 rule stats:
     input:
