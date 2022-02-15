@@ -13,7 +13,7 @@ def get_fastqs(wildcards):
 
 rule all:
     input:
-        expand("results/{strain}.fasta", strain=samples.index),
+        "results/stats.txt"
 
 
 rule cutadapt:
@@ -34,12 +34,20 @@ rule cutadapt:
     wrapper:
         "v1.1.0/bio/cutadapt/pe"
 
-
-rule merge:
+rule convert_fastq:
     input:
-        fastq1="trimmed/{strain}.1.fastq",
-        fastq2="trimmed/{strain}.2.fastq",
+        "trimmed/{strain}.{orientation}.fastq",
     output:
-        "results/{strain}.fasta",
+        "results/{strain}.{orientation}.fasta",
+    conda:
+        "envs/vsearch.yaml"
     shell:
-        "cat {input.fastq1} {input.fastq2} > {output}"
+        "vsearch --fastq_convert {input} --fasta_out {output}"
+
+rule stats:
+    input:
+        expand("results/{strain}.{orientation}.fasta", strain=samples.index, orientation=[1,2]),
+    output:
+        "results/stats.txt"
+    shell:
+        "wc -l {input} > {output}"
